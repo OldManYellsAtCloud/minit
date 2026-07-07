@@ -7,7 +7,6 @@ add_executable(minit main.c
     config_file.h
     config_file.c
     text_utils.h
-    .config
     text_utils.c
     task.h
     task.c
