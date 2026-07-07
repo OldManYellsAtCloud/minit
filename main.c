@@ -75,16 +75,5 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    struct task_spec ts;
-    int ret = config_file_string_to_task_spec("first second third fourth", &ts);
-
-    int foo = 0;
-    while (ts.args[foo] != NULL){
-        printf("Boo %d - %s\n", foo, ts.args[foo]);
-        foo++;
-    }
-
-    printf("ret: %d\n", ret);
-
     return 0;
 }
