@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #ifdef BENCHMARK
 #include <time.h>
@@ -99,6 +100,8 @@ void* task_execute(void *task){
 
         break;
     }
+
+    waitpid(fork_pid, NULL, 0);
     return NULL;
 }
 
