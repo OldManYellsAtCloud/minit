@@ -9,6 +9,10 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#ifdef BENCHMARK
+#include <time.h>
+#endif
+
 static int cur_jobs = 0;
 
 static bool keep_going = true;
@@ -24,6 +28,14 @@ void* task_execute(void *task){
     int ret;
     int timeout;
     struct pollfd pfd;
+
+#ifdef BENCHMARK
+    struct timespec start, end;
+    long exec_time;
+    if (clock_gettime(CLOCK_REALTIME, &start) != 0){
+        fprintf(stderr, "Could not get start time: %d - %s\n", errno, strerror(errno));
+    }
+#endif
 
     struct config_file *cf = (struct config_file*)task;
 
@@ -52,9 +64,19 @@ void* task_execute(void *task){
 
     ret = poll(&pfd, 1, timeout);
 
+#ifdef BENCHMARK
+    if (clock_gettime(CLOCK_REALTIME, &end) != 0){
+        fprintf(stderr, "Could not get end time: %d - %s\n", errno, strerror(errno));
+    } else {
+        exec_time = (end.tv_sec - start.tv_sec) * 1000000000 +
+                    end.tv_nsec - start.tv_nsec;
+        printf("Exec time: %ld ns\n", exec_time);
+    }
+#endif
+
     switch (ret){
     case 0:
-        fprintf(stderr, "Task timeout: %s after %d seconds\n", cf->task->cmd, cf->timeout);
+        fprintf(stderr, "Task timeout: %s after %ld seconds\n", cf->task->cmd, cf->timeout);
         if (kill(fork_pid, SIGKILL) != 0){
             fprintf(stderr, "Could not kill pid: %d. %d - %s\n", fork_pid, errno, strerror(errno));
         }
@@ -87,10 +109,15 @@ int task_do_init(struct config_file *cf_array, int job_num){
     int orig_jobs_done;
 
     cf = malloc(sizeof(struct config_file*));
+    if (cf == NULL){
+        fprintf(stderr, "Could not malloc cf: %d - %s\n", errno, strerror(errno));
+        return -1;
+    }
 
     done_list = malloc(job_num * sizeof(struct config_file*));
     if (done_list == NULL){
         fprintf(stderr, "Could not malloc done_list: %d - %s\n", errno, strerror(errno));
+        free(cf);
         return -1;
     }
 
@@ -144,6 +171,12 @@ int task_do_init(struct config_file *cf_array, int job_num){
         config_file_dump(*cf);
         (*cf)->in_progress = true;
     }
+
+    // wait for the last jobs
+    pthread_mutex_lock(&mtx);
+    while (cur_jobs > 0)
+        pthread_cond_wait(&cnd, &mtx);
+    pthread_mutex_unlock(&mtx);
 
     free(done_list);
     free(cf);

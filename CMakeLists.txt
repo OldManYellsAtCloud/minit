@@ -34,7 +34,7 @@ install(TARGETS minit
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-target_compile_definitions(minit PUBLIC -DDEBUG_BUILD)
+target_compile_definitions(minit PUBLIC -DDEBUG_BUILD -DBENCHMARK)
 
 
 add_custom_command(TARGET minit_test_config_file POST_BUILD
