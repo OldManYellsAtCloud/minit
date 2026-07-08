@@ -27,8 +27,6 @@ void* task_execute(void *task){
 
     struct config_file *cf = (struct config_file*)task;
 
-    printf("Running task id: %d, cmd: %s\n", cf->id, cf->task->cmd);
-
     if ((fork_pid = fork()) == 0){
         execv(cf->task->cmd, cf->task->args);
         // no return here, of course
@@ -38,6 +36,7 @@ void* task_execute(void *task){
     if (pidfd < 0){
         fprintf(stderr, "Fatal: could not open pidfd for task: %s: %d - %s\n",
                 cf->task->cmd, errno, strerror(errno));
+        keep_going = false;
         return NULL;
     }
 
@@ -136,6 +135,8 @@ int task_do_init(struct config_file *cf_array, int job_num){
             fprintf(stderr, "Could not run task\n");
             break;
         }
+        printf("Running task:\n");
+        config_file_dump(*cf);
         (*cf)->in_progress = true;
     }
 

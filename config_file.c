@@ -179,9 +179,14 @@ void config_file_dump(const struct config_file *cfg){
         return;
     }
 
-    printf("id: %d\ncmd (w/o args): %s\npath to cfg: %s\ndeps_num: %d\ndeps: %s\n",
-            cfg->id, cfg->task->cmd, cfg->path, cfg->rem_deps_num,
+    printf("id: %d\npath to cfg: %s\ndeps_num: %d\ndeps: %s\n",
+            cfg->id, cfg->path, cfg->rem_deps_num,
             cfg->rem_deps_num ? cfg->deps : "-");
+
+    printf("cmd: %s ", cfg->task->cmd);
+    for (int i = 0; cfg->task->args[i] != NULL; ++i)
+        printf("%s ", cfg->task->args[i]);
+    printf("\n");
 
     printf("=======\n");
 }
@@ -266,7 +271,9 @@ int config_file_string_to_task_spec(char* full_cmd, struct task_spec* ts) {
     ts->cmd = strdup(token);
 
     // need at least an initial malloc, in case there are no arguments
-    args = malloc(sizeof(char*));
+    args = malloc(sizeof(char*) * 2);
+    // the first argument is the cmd itself
+    args[arg_num++] = ts->cmd;
 
     while ((token = strtok(NULL, " ")) != NULL){
         tmp = realloc(args, (arg_num + 1) * sizeof(char*));
