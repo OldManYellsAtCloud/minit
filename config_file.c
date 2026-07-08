@@ -156,6 +156,8 @@ struct config_file* config_file_parse_all(char *folder_path){
             ret = tmp;
         }
 
+        config_file_init(&ret[ret_cnt]);
+
         if (config_file_parse(ftsent->fts_path, &ret[ret_cnt]) < 0){
             printf("Could not parse %s, skipping\n", ftsent->fts_path);
             continue;
@@ -191,11 +193,11 @@ void config_file_dump_not_finished(const struct config_file *cfg_array) {
     }
 }
 
-int config_file_get_next(struct config_file *cfg_array, struct config_file *dest) {
+int config_file_get_next(struct config_file *cfg_array, struct config_file **dest) {
     bool there_is_still_pending = false;
     for (size_t i = 0; cfg_array[i].id != END_OF_ARRAY.id; ++i){
         if (cfg_array[i].rem_deps_num == 0 && !cfg_array[i].complete && !cfg_array[i].in_progress){
-            dest = &cfg_array[i];
+            *dest = &cfg_array[i];
             return CONFIG_FILE_DONE;
         }
         if (cfg_array[i].rem_deps_num > 0)
@@ -206,6 +208,8 @@ int config_file_get_next(struct config_file *cfg_array, struct config_file *dest
 }
 
 int config_file_dependency_present(struct config_file *cfg, const char* dependency){
+    if (cfg->deps == NULL)
+        return 1;
     const char* result = strstr(cfg->deps, dependency);
     return result ? 0 : 1;
 }

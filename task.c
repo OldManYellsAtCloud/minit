@@ -77,10 +77,12 @@ void* task_execute(void *task){
 }
 
 int task_do_init(struct config_file *cf_array, int job_num){
-    struct config_file cf;
+    struct config_file **cf;
     int ret = 0;
     int next_ret;
     int orig_jobs_done;
+
+    cf = malloc(sizeof(struct config_file*));
 
     done_list = malloc(job_num * sizeof(struct config_file*));
     if (done_list == NULL){
@@ -98,7 +100,7 @@ int task_do_init(struct config_file *cf_array, int job_num){
             pthread_mutex_unlock(&mtx);
         }
 
-        next_ret = config_file_get_next(cf_array, &cf);
+        next_ret = config_file_get_next(cf_array, cf);
 
         // there are no more tasks to process, we are done
         if (next_ret == CONFIG_FILE_FINISHED){
@@ -129,13 +131,16 @@ int task_do_init(struct config_file *cf_array, int job_num){
         }
 
         ++cur_jobs;
-        if (task_run_task(&cf) != 0){
+
+        if (task_run_task(*cf) != 0){
             fprintf(stderr, "Could not run task\n");
             break;
         }
+        (*cf)->in_progress = true;
     }
 
     free(done_list);
+    free(cf);
     return ret;
 }
 

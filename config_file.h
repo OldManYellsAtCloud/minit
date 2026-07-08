@@ -61,7 +61,7 @@ void config_file_dump_not_finished(const struct config_file *cfg_array);
 // CONFIG_FILE_PENDING - there are still tasks to run, but none of them are ready, they
 //                       still wait for other (probably still running) dependencies
 //                       to finish). Try again after the next task finished.
-int config_file_get_next(struct config_file *cfg_array, struct config_file *dest);
+int config_file_get_next(struct config_file *cfg_array, struct config_file **dest);
 
 // check if a task depends on another dependency name
 // return 0 if "cfg" depends on "dependency"
