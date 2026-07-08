@@ -66,6 +66,7 @@ int config_file_parse(const char *path, struct config_file *cfg) {
     cfg->complete = false;
     cfg->in_progress = false;
     cfg->timeout = CONFIG_FILE_TIMEOUT_INFINITE;
+    cfg->deps= NULL;
 
     errno = 0;
     while ((bytes_read = getline(&buf, &line_size, cfg_stream)) > 0){

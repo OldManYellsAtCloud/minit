@@ -124,13 +124,20 @@ int task_do_init(struct config_file *cf_array, int job_num){
         return -1;
     }
 
-    while (cur_jobs <= job_num && keep_going){
+    while (keep_going){
         // if there are any jobs done, remove them from the dependency list
         if (jobs_done > 0){
             pthread_mutex_lock(&mtx);
             while (jobs_done > 0){
                 config_file_dependency_done(cf_array, done_list[--jobs_done]->path);
             }
+            pthread_mutex_unlock(&mtx);
+        }
+
+        if (cur_jobs == job_num){
+            pthread_mutex_lock(&mtx);
+            while (cur_jobs == job_num)
+                pthread_cond_wait(&cnd, &mtx);
             pthread_mutex_unlock(&mtx);
         }
 
