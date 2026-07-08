@@ -28,11 +28,16 @@ void* task_execute(void *task){
     struct config_file *cf = (struct config_file*)task;
 
     if ((fork_pid = fork()) == 0){
-        execv(cf->task->cmd, cf->task->args);
+        if (execvp(cf->task->cmd, cf->task->args) == -1){
+            fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
+            keep_going = false;
+            return NULL;
+        }
         // no return here, of course
     }
 
     pidfd = syscall(SYS_pidfd_open, fork_pid, 0);
+
     if (pidfd < 0){
         fprintf(stderr, "Fatal: could not open pidfd for task: %s: %d - %s\n",
                 cf->task->cmd, errno, strerror(errno));
@@ -40,7 +45,7 @@ void* task_execute(void *task){
         return NULL;
     }
 
-    timeout = cf->timeout;
+    timeout = cf->timeout * 1000;
 
     pfd.fd = pidfd;
     pfd.events = POLLIN;
