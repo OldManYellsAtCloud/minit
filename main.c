@@ -59,6 +59,13 @@ int main(int argc, char* argv[])
     size_t num_jobs;
     struct config_file *config_files;
 
+#ifdef DEBUG_BUILD
+    printf("minit started with arguments: ");
+    for (int i = 1; i < argc; ++i)
+        printf("%s ", argv[i]);
+    printf("END\n");
+#endif
+
     minit_check_uid();
 
     cfg_folder = getenv("MINIT_CFG_DIR");

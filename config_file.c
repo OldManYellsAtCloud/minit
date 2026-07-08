@@ -70,6 +70,10 @@ int config_file_parse(const char *path, struct config_file *cfg) {
 
     errno = 0;
     while ((bytes_read = getline(&buf, &line_size, cfg_stream)) > 0){
+        // empty lines and comments are not too exciting
+        if (strlen(buf) == 0 || buf[0] == '#')
+            continue;
+
         if (strncmp("cmd: ", buf, 4) == 0){
             char* full_cmd = text_utils_trim(text_utils_get_config_value(buf));
             if (config_file_string_to_task_spec(full_cmd, cfg->task) != 0){
