@@ -67,8 +67,6 @@ int main(int argc, char* argv[])
         cfg_folder = CFG_FOLDER;
 
     num_jobs = minit_get_job_number(argc, argv);
-    reaper_start();
-
 
     if (!(config_files = config_file_parse_all(cfg_folder))){
         fprintf(stderr, "CRITICAL: Could not parse config from %s\n", cfg_folder);
@@ -78,6 +76,8 @@ int main(int argc, char* argv[])
     if (task_do_init(config_files, num_jobs) != 0){
         fprintf(stderr, "CRITICAL: could not execute all init scripts\n");
     }
+
+    reaper_start();
 
     return 0;
 }
