@@ -82,4 +82,6 @@ int config_file_string_to_task_spec(char* full_cmd, struct task_spec* ts);
 // For each config_file struct this function needs to be called to allocate
 // memory for the task_spec struct. Return 0 on success.
 int config_file_init(struct config_file *cf);
+
+void config_file_dependency_done(struct config_file* cfg_arr, const char* dependency);
 #endif // CONFIG_FILE_H

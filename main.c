@@ -75,5 +75,9 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+    if (task_do_init(config_files, num_jobs) != 0){
+        fprintf(stderr, "CRITICAL: could not execute all init scripts\n");
+    }
+
     return 0;
 }

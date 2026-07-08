@@ -282,6 +282,16 @@ int config_file_string_to_task_spec(char* full_cmd, struct task_spec* ts) {
     return 0;
 }
 
+void config_file_dependency_done(struct config_file* cfg_arr, const char* dependency){
+    size_t idx = 0;
+    while (cfg_arr[idx].id != END_OF_ARRAY.id){
+        if (config_file_dependency_present(&cfg_arr[idx], dependency) == 0){
+            config_file_finish_dependency(&cfg_arr[idx], dependency);
+        }
+        ++idx;
+    }
+}
+
 int config_file_init(struct config_file* cf){
     cf->task = malloc(sizeof(struct task_spec));
     if (cf->task == NULL){
