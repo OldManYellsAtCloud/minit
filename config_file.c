@@ -260,7 +260,8 @@ int config_file_string_to_task_spec(char* full_cmd, struct task_spec* ts) {
     char* token;
     char** args = NULL;
     char** tmp;
-    size_t arg_num = 0;
+    size_t arg_num = 2;
+    int ret = 0;
 
     // strtok modifies its argument
     // which not only breaks it for later usage, but also needs to be in
@@ -271,31 +272,35 @@ int config_file_string_to_task_spec(char* full_cmd, struct task_spec* ts) {
     token = strtok(cmd_copy, " ");
     if (token == NULL){
         fprintf(stderr, "Could not parse cmd from full_cmd: %s\n", full_cmd);
-        return -1;
+        ret = -1;
+        goto exit;
     }
     ts->cmd = strdup(token);
 
     // need at least an initial malloc, in case there are no arguments
-    args = malloc(sizeof(char*) * 2);
+    args = malloc(sizeof(char*) * arg_num);
     // the first argument is the cmd itself
-    args[arg_num++] = ts->cmd;
+    args[0] = ts->cmd;
 
     while ((token = strtok(NULL, " ")) != NULL){
         tmp = realloc(args, (arg_num + 1) * sizeof(char*));
         if (tmp == NULL){
             fprintf(stderr, "Could not realloc args array: %d - %s\n", errno, strerror(errno));
             free(args);
-            return -1;
+            ret = -1;
+            goto exit;
         }
         args = tmp;
-        args[arg_num] = strdup(token);
+        args[arg_num - 1] = strdup(token);
         ++arg_num;
     }
 
-    args[arg_num] = NULL;
+    args[arg_num - 1] = NULL;
     ts->args = args;
 
-    return 0;
+exit:
+    free(cmd_copy);
+    return ret;
 }
 
 void config_file_dependency_done(struct config_file* cfg_arr, const char* dependency){

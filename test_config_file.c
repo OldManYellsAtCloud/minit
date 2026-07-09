@@ -7,10 +7,11 @@ CTEST(config_file, string_to_task){
     int ret = config_file_string_to_task_spec("a bc d e", &ts);
     ASSERT_EQUAL(0, ret);
     ASSERT_STR("a", ts.cmd);
-    ASSERT_STR("bc", ts.args[0]);
-    ASSERT_STR("d", ts.args[1]);
-    ASSERT_STR("e", ts.args[2]);
-    ASSERT_NULL(ts.args[3]);
+    ASSERT_STR("a", ts.args[0]);
+    ASSERT_STR("bc", ts.args[1]);
+    ASSERT_STR("d", ts.args[2]);
+    ASSERT_STR("e", ts.args[3]);
+    ASSERT_NULL(ts.args[4]);
 }
 
 CTEST(config_file, string_to_task2){
@@ -18,7 +19,18 @@ CTEST(config_file, string_to_task2){
     int ret = config_file_string_to_task_spec("a ", &ts);
     ASSERT_EQUAL(0, ret);
     ASSERT_STR("a", ts.cmd);
-    ASSERT_NULL(ts.args[0]);
+    ASSERT_STR("a", ts.args[0]);
+    ASSERT_NULL(ts.args[1]);
+}
+
+CTEST(config_file, string_to_task_one_param){
+    struct task_spec ts;
+    int ret = config_file_string_to_task_spec("a b", &ts);
+    ASSERT_EQUAL(0, ret);
+    ASSERT_STR("a", ts.cmd);
+    ASSERT_STR("a", ts.args[0]);
+    ASSERT_STR("b", ts.args[1]);
+    ASSERT_NULL(ts.args[2]);
 }
 
 CTEST(config_file, parse_cfg){
@@ -31,10 +43,11 @@ CTEST(config_file, parse_cfg){
     ASSERT_FALSE(cf.in_progress);
     ASSERT_EQUAL(15, cf.timeout);
     ASSERT_STR("one", cf.task->cmd);
-    ASSERT_STR("two", cf.task->args[0]);
-    ASSERT_STR("three", cf.task->args[1]);
-    ASSERT_STR("four", cf.task->args[2]);
-    ASSERT_NULL(cf.task->args[3]);
+    ASSERT_STR("one", cf.task->args[0]);
+    ASSERT_STR("two", cf.task->args[1]);
+    ASSERT_STR("three", cf.task->args[2]);
+    ASSERT_STR("four", cf.task->args[3]);
+    ASSERT_NULL(cf.task->args[4]);
 }
 
 int main(int argc, const char* argv[]){
