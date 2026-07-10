@@ -69,9 +69,10 @@ void* task_execute(void *task){
     if (clock_gettime(CLOCK_REALTIME, &end) != 0){
         fprintf(stderr, "Could not get end time: %d - %s\n", errno, strerror(errno));
     } else {
-        exec_time = (end.tv_sec - start.tv_sec) * 1000000000 +
-                    end.tv_nsec - start.tv_nsec;
-        printf("Exec time: %ld ns\n", exec_time);
+        exec_time = end.tv_sec * 1000000000 + end.tv_nsec -
+                    (start.tv_sec * 1000000000 + start.tv_nsec);
+
+        printf("Exec time: %.9f s\n", exec_time / 1000000000.0);
     }
 #endif
 
