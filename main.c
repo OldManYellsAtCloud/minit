@@ -61,13 +61,13 @@ int main(int argc, char* argv[])
 #endif
 
     for (int i = 1; i < argc; ++i){
-        if (strcmp(argv[i], "--minit.config-folder") == 0){
-            cfg_folder = argv[++i];
+        if (strncmp(argv[i], "--minit.config-folder", 21) == 0){
+            cfg_folder = strchr(argv[i], '=') + 1;
         }
 
-        if (strcmp(argv[i], "--minit.numjobs") == 0){
+        if (strncmp(argv[i], "--minit.numjobs", 15) == 0){
             errno = 0;
-            num_jobs = strtol(argv[++i], NULL, 10);
+            num_jobs = strtol(strchr(argv[i], '=') + 1, NULL, 10);
             if (errno){
                fprintf(stderr, "Could not convert %s to job number.\n", argv[2]);
                 exit(EXIT_FAILURE);
