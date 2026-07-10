@@ -14,9 +14,9 @@
 #include "task.h"
 
 #ifdef DEBUG_BUILD
-#define CFG_FOLDER "/tmp/minit_cfg"
+#define DEFAULT_CFG_FOLDER "/tmp/minit_cfg"
 #else
-#define CFG_FOLDER "/etc/minit"
+#define DEFAULT_CFG_FOLDER "/etc/minit"
 #endif
 
 static void minit_check_uid(){
@@ -26,18 +26,12 @@ static void minit_check_uid(){
     }
 }
 
-static long minit_get_job_number(int argc, char* argv[]){
+static long minit_get_job_number(){
     long num_jobs;
     char* env_temp;
 
     errno = 0;
-    if (argc > 2 && strcmp(argv[1], "--minit.numjobs")){
-        num_jobs = strtol(argv[2], NULL, 10);
-        if (errno){
-            fprintf(stderr, "Could not convert %s to job number.\n", argv[2]);
-            exit(EXIT_FAILURE);
-        }
-    } else if ((env_temp = getenv("MINIT_JOB_NR"))){
+    if ((env_temp = getenv("MINIT_JOB_NR"))){
         num_jobs = strtol(env_temp, NULL, 10);
         if (errno){
             fprintf(stderr, "Count not convert %s from environment to job number.\n", env_temp);
@@ -55,8 +49,8 @@ static long minit_get_job_number(int argc, char* argv[]){
 
 int main(int argc, char* argv[])
 {
-    char *cfg_folder;
-    size_t num_jobs;
+    char *cfg_folder = NULL;
+    int num_jobs = -1;
     struct config_file *config_files;
 
 #ifdef DEBUG_BUILD
@@ -66,14 +60,30 @@ int main(int argc, char* argv[])
     printf("END\n");
 #endif
 
+    for (int i = 1; i < argc; ++i){
+        if (strcmp(argv[i], "--minit.config-folder") == 0){
+            cfg_folder = argv[++i];
+        }
+
+        if (strcmp(argv[i], "--minit.numjobs") == 0){
+            errno = 0;
+            num_jobs = strtol(argv[++i], NULL, 10);
+            if (errno){
+               fprintf(stderr, "Could not convert %s to job number.\n", argv[2]);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
     minit_check_uid();
 
-    cfg_folder = getenv("MINIT_CFG_DIR");
-
     if (!cfg_folder)
-        cfg_folder = CFG_FOLDER;
+        cfg_folder = getenv("MINIT_CFG_DIR");
+    if (!cfg_folder)
+        cfg_folder = DEFAULT_CFG_FOLDER;
 
-    num_jobs = minit_get_job_number(argc, argv);
+    if (num_jobs == -1)
+        num_jobs = minit_get_job_number();
 
     if (!(config_files = config_file_parse_all(cfg_folder))){
         fprintf(stderr, "CRITICAL: Could not parse config from %s\n", cfg_folder);
