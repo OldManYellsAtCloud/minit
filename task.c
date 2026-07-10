@@ -151,7 +151,7 @@ int task_do_init(struct config_file *cf_array, int job_num){
 
         // there are tasks, but still waiting for dependencies - but there are
         // no more running jobs. deadlock.
-        if (next_ret == CONFIG_FILE_PENDING && cur_jobs == 0){
+        if (next_ret == CONFIG_FILE_PENDING && cur_jobs == 0 && jobs_done == 0){
             fprintf(stderr, "Deadlock!\n");
             ret = -1;
             keep_going = false;
