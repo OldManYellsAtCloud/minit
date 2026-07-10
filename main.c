@@ -96,5 +96,9 @@ int main(int argc, char* argv[])
 
     reaper_start();
 
+    while (true){
+        sleep(1);
+    }
+
     return 0;
 }
