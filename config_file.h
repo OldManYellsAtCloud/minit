@@ -15,6 +15,11 @@ struct task_spec {
     char **args;
 };
 
+enum task_type {
+    SCRIPT,
+    NATIVE
+};
+
 struct config_file {
     int id; // unique id
     //char *cmd; // command to run
@@ -28,6 +33,7 @@ struct config_file {
                 // of strings or other IDs?
     bool complete; // is the task finished?
     bool in_progress; // is the task running currently?
+    enum task_type type;
 };
 
 const static struct config_file END_OF_ARRAY = {

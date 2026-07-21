@@ -66,7 +66,8 @@ int config_file_parse(const char *path, struct config_file *cfg) {
     cfg->complete = false;
     cfg->in_progress = false;
     cfg->timeout = CONFIG_FILE_TIMEOUT_INFINITE;
-    cfg->deps= NULL;
+    cfg->deps = NULL;
+    cfg->type = SCRIPT;
 
     errno = 0;
     while ((bytes_read = getline(&buf, &line_size, cfg_stream)) > 0){
@@ -100,6 +101,11 @@ int config_file_parse(const char *path, struct config_file *cfg) {
             }
             cfg->timeout = timeout;
             continue;
+        }
+
+        if (strncmp("type: ", buf, 6) == 0){
+            char *t = text_utils_trim(text_utils_get_config_value(buf));
+            cfg->type = strncmp(t, "NATIVE", 7) ? SCRIPT : NATIVE;
         }
         fprintf(stderr, "Unrecognized config line: %s: %s\n", path, buf);
     }
