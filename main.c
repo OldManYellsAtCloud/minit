@@ -49,29 +49,6 @@ static long minit_get_job_number(){
     return num_jobs;
 }
 
-static void minit_drop_controlling_terminal(){
-    int controlling_tty_fd;
-    char* tty_path;
-    tty_path = malloc(L_ctermid + 1);
-    if (tty_path == NULL){
-        fprintf(stderr, "Could not allocate memory for tty_path: %d - %s\n", errno, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    ctermid(tty_path);
-
-    printf("Controlling tty path: %s\n", tty_path);
-    controlling_tty_fd = open(tty_path, O_RDONLY);
-    if (controlling_tty_fd < 0){
-        fprintf(stderr, "Could not open controlling tty: %d - %s\n", errno, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (ioctl(controlling_tty_fd, TIOCNOTTY) < 0){
-        fprintf(stderr, "Could not drop controlling terminal: %d - %s\n", errno, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-}
-
 int main(int argc, char* argv[])
 {
     char *cfg_folder = NULL;
@@ -120,7 +97,6 @@ int main(int argc, char* argv[])
     }
 
     reaper_start();
-    minit_drop_controlling_terminal();
 
     while (true){
         sleep(1);
