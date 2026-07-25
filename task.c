@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
+#include <dlfcn.h>
+
 #ifdef BENCHMARK
 #include <time.h>
 #endif
@@ -29,6 +31,8 @@ void* task_execute(void *task){
     int ret;
     int timeout;
     struct pollfd pfd;
+    void *dyn_handle;
+    typeof(int(void)) *dyn_task;
 
 #ifdef BENCHMARK
     struct timespec start, end;
@@ -41,10 +45,30 @@ void* task_execute(void *task){
     struct config_file *cf = (struct config_file*)task;
 
     if ((fork_pid = fork()) == 0){
-        if (execvp(cf->task->cmd, cf->task->args) == -1){
-            fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
-            keep_going = false;
-            return NULL;
+        switch(cf->type){
+        case SCRIPT:
+            if (execvp(cf->task->cmd, cf->task->args) == -1){
+                fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
+                keep_going = false;
+                goto exit;
+            }
+            break;
+        case NATIVE:
+            dyn_handle = dlopen(cf->task->cmd, RTLD_LAZY | RTLD_LOCAL);
+            if (!dyn_handle){
+                fprintf(stderr, "Could not load %s: %s\n", cf->task->cmd, dlerror());
+                keep_going = false;
+                goto exit;
+            }
+
+            dyn_task = dlsym(dyn_handle, "run");
+            if (!dyn_task){
+                fprintf(stderr, "Error querying run method in %s: %s\n", cf->task->cmd, dlerror());
+                keep_going = false;
+                goto exit;
+            }
+
+            //return dyn_task();
         }
         // no return here, of course
     }
@@ -55,7 +79,7 @@ void* task_execute(void *task){
         fprintf(stderr, "Fatal: could not open pidfd for task: %s: %d - %s\n",
                 cf->task->cmd, errno, strerror(errno));
         keep_going = false;
-        return NULL;
+        goto exit;
     }
 
     timeout = cf->timeout * 1000;
@@ -103,6 +127,8 @@ void* task_execute(void *task){
     }
 
     waitpid(fork_pid, NULL, 0);
+
+exit:
     return NULL;
 }
 

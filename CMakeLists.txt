@@ -11,7 +11,8 @@ add_executable(minit main.c
     task.h
     task.c
     reaper.h
-    reaper.c)
+    reaper.c
+    native_task.h)
 
 add_executable(minit_test_text_utils
     ctest.h
@@ -28,6 +29,11 @@ add_executable(minit_test_config_file
     text_utils.h
     )
 
+add_library(sample_native_task SHARED
+    sample_native_task.c
+    native_task.h
+    )
+
 include(GNUInstallDirs)
 install(TARGETS minit
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -35,7 +41,6 @@ install(TARGETS minit
 )
 
 target_compile_definitions(minit PUBLIC -DDEBUG_BUILD -DBENCHMARK)
-
 
 add_custom_command(TARGET minit_test_config_file POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
