@@ -20,6 +20,11 @@ enum task_type {
     NATIVE
 };
 
+enum exec_type {
+    ONCE, // run it once, and then forget about it
+    RESPAWN // keep it running. timout has no meaning. if it ends, start it again.
+};
+
 struct config_file {
     int id; // unique id
     //char *cmd; // command to run
@@ -33,7 +38,8 @@ struct config_file {
                 // of strings or other IDs?
     bool complete; // is the task finished?
     bool in_progress; // is the task running currently?
-    enum task_type type;
+    enum task_type ttype;
+    enum exec_type etype;
 };
 
 const static struct config_file END_OF_ARRAY = {

@@ -67,10 +67,8 @@ void* task_execute(void *task){
                 keep_going = false;
                 goto exit;
             }
-
-            //return dyn_task();
+            break;
         }
-        // no return here, of course
     }
 
     pidfd = syscall(SYS_pidfd_open, fork_pid, 0);
