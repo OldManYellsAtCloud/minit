@@ -26,8 +26,15 @@ add_executable(minit_test_config_file
     config_file.c
     config_file.h
     text_utils.c
-    text_utils.h
-    )
+    text_utils.h)
+
+add_executable(minit_test_task
+    ctest.h
+    test_task.c
+    config_file.c
+    config_file.h
+    text_utils.c
+    text_utils.h)
 
 add_library(sample_native_task SHARED
     sample_native_task.c

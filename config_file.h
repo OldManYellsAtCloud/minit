@@ -15,6 +15,11 @@ struct task_spec {
     char **args;
 };
 
+struct dependencies {
+    char *dependency;
+    struct dependencies *next;
+};
+
 enum task_type {
     SCRIPT,
     NATIVE
@@ -32,10 +37,7 @@ struct config_file {
     char *path; // path to original config file
     long timeout; // in how many seconds it supposed to finish without being considered failed
     int rem_deps_num; // number of remaining dependencies
-    char *deps; // for now it's a string. deps are separated by a space
-                // TODO: made it something more sophisticated. Should it
-                // be a list of pointers to other config files? Or just a list
-                // of strings or other IDs?
+    struct dependencies *deps; // linked list of dependencies
     bool complete; // is the task finished?
     bool in_progress; // is the task running currently?
     enum task_type ttype;

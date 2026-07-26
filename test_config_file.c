@@ -48,6 +48,10 @@ CTEST(config_file, parse_cfg){
     ASSERT_STR("three", cf.task->args[2]);
     ASSERT_STR("four", cf.task->args[3]);
     ASSERT_NULL(cf.task->args[4]);
+    ASSERT_EQUAL(2, cf.rem_deps_num);
+    ASSERT_STR("dep1.cfg", cf.deps->dependency);
+    ASSERT_STR("dep2.cfg", cf.deps->next->dependency);
+    ASSERT_NULL(cf.deps->next->next);
 }
 
 int main(int argc, const char* argv[]){

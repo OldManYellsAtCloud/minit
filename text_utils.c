@@ -4,7 +4,6 @@
 #include <ctype.h>
 
 #include <stdio.h>
-
 #include <stdlib.h>
 
 //split line by delim, and return a pointer to the start after the delim
@@ -110,4 +109,20 @@ char* text_utils_normalize_spaces(char* text){
         return normalized;
 
     return shrinked_normalized;
+}
+
+char** text_utils_split_line(const char* text){
+    size_t cur_pos = 0, word_len;
+    char *end_of_word;
+
+    int number_of_words = text_utils_count_words(text);
+    char** ret = malloc(sizeof(char*) * (number_of_words + 1));
+    for (int i = 0; i < number_of_words; ++i){
+        end_of_word = strchr(text + cur_pos, ' ');
+        word_len = end_of_word - text + cur_pos;
+        ret[i] = strndup(text + cur_pos, word_len);
+        cur_pos += word_len + 1; // skip the space
+    }
+    ret[number_of_words] = NULL;
+    return ret;
 }

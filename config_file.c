@@ -28,12 +28,24 @@
 
 static int id = 0;
 
+struct dependencies* config_file_init_dependency(char* dep){
+    struct dependencies *ret = malloc(sizeof(struct dependencies));
+    ret->dependency = malloc(sizeof(char*));
+    ret->dependency = dep;
+    ret->next = NULL;
+    return ret;
+}
+
 int config_file_parse(const char *path, struct config_file *cfg) {
     int ret = 0;
     size_t line_size = ONE_LINE;
     FILE *cfg_stream;
     char *buf = NULL;
+    char *tmp_deps;
+    char **deps = NULL;
     ssize_t bytes_read;
+    struct dependencies *deps_struct, *last_dep;
+
 
     cfg_stream = fopen(path, "r");
     if (!cfg_stream){
@@ -87,8 +99,20 @@ int config_file_parse(const char *path, struct config_file *cfg) {
         }
 
         if (strncmp("dependencies: ", buf, 14) == 0){
-            cfg->deps = text_utils_trim(text_utils_get_config_value(buf));
-            cfg->rem_deps_num = text_utils_count_words(cfg->deps);
+            tmp_deps = text_utils_trim(text_utils_get_config_value(buf));
+            deps = text_utils_split_line(tmp_deps);
+            cfg->rem_deps_num = text_utils_count_words(tmp_deps);
+
+            for (int i = 0; i < cfg->rem_deps_num; ++i){
+                if (i == 0){
+                    cfg->deps = config_file_init_dependency(deps[i]);
+                    last_dep = cfg->deps;
+                } else {
+                    last_dep->next = config_file_init_dependency(deps[i]);
+                    last_dep = last_dep->next;
+                }
+            }
+
             continue;
         }
 
@@ -191,9 +215,16 @@ void config_file_dump(const struct config_file *cfg){
         return;
     }
 
-    printf("id: %d\npath to cfg: %s\ndeps_num: %d\ndeps: %s\n",
-            cfg->id, cfg->path, cfg->rem_deps_num,
-            cfg->rem_deps_num ? cfg->deps : "-");
+    printf("id: %d\npath to cfg: %s\ndeps_num: %d\ndeps: ",
+            cfg->id, cfg->path, cfg->rem_deps_num);
+
+    struct dependencies *deps = cfg->deps;
+    for (int i = 0; i < cfg->rem_deps_num; ++i){
+        printf("%s ", deps->dependency);
+        deps = deps->next;
+    }
+
+    printf("\n");
 
     printf("cmd: %s ", cfg->task->cmd);
     for (int i = 0; cfg->task->args[i] != NULL; ++i)
@@ -227,39 +258,53 @@ int config_file_get_next(struct config_file *cfg_array, struct config_file **des
 int config_file_dependency_present(struct config_file *cfg, const char* dependency){
     if (cfg->deps == NULL)
         return 1;
-    const char* result = strstr(cfg->deps, dependency);
-    return result ? 0 : 1;
+
+    struct dependencies *deps = cfg->deps;
+
+    while (deps){
+        if (strcmp(deps->dependency, dependency) == 0){
+            return 0;
+        }
+        deps = deps->next;
+    }
+
+    return 1;
 }
 
 int config_file_finish_dependency(struct config_file *cfg, const char* dependency) {
-    char *new_dep;
-    char *dep_start = strstr(cfg->deps, dependency);
-    if (!dep_start){
+    struct dependencies *deps = cfg->deps;
+    struct dependencies *prev = NULL;
+
+    if (config_file_dependency_present(cfg, dependency) == 1){
         printf("Cfg %s does not depend on %s\n", cfg->path, dependency);
         return -1;
     }
 
-    size_t start = dep_start - cfg->deps;
-    size_t end = start + strlen(dependency);
-    size_t new_dep_size = strlen(cfg->deps) - strlen(dependency) + 1;
+    while(deps){
+        // This is not the dependency we are looking for
+        if (strcmp(deps->dependency, dependency) != 0){
+            prev = deps;
+            deps = deps->next;
+            continue;
+        }
 
-    new_dep = malloc(new_dep_size);
-    if (!new_dep){
-        fprintf(stderr, "Not enough memory to handle dependencies!");
-        return -1;
+        // This is the one we are looking for. Remove it from the list
+        if (!prev && !deps->next){
+            cfg->deps = NULL;
+        } else if (!prev && deps->next){
+            cfg->deps = deps->next;
+        } else if (prev && !deps->next){
+            prev->next = NULL;
+        } else if (prev && deps->next){
+            prev->next = deps->next;
+        }
+
+        free(deps->dependency);
+        free(deps);
+        cfg->rem_deps_num--;
+        break;
     }
 
-    // skip the middle with the substring
-    memcpy(new_dep, cfg->deps, start);
-    memcpy(new_dep + start, cfg->deps + end, strlen(cfg->deps) - end);
-    new_dep[new_dep_size - 1] = '\0';
-
-    free(cfg->deps);
-
-    cfg->deps = text_utils_trim(new_dep);
-    free(new_dep);
-
-    cfg->rem_deps_num--;
     return 0;
 }
 

@@ -45,7 +45,7 @@ void* task_execute(void *task){
     struct config_file *cf = (struct config_file*)task;
 
     if ((fork_pid = fork()) == 0){
-        switch(cf->type){
+        switch(cf->ttype){
         case SCRIPT:
             if (execvp(cf->task->cmd, cf->task->args) == -1){
                 fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
