@@ -95,6 +95,10 @@ void* task_execute(void *task){
                     (start.tv_sec * 1000000000 + start.tv_nsec);
 
         printf("Exec time: %.9f s\n", exec_time / 1000000000.0);
+        if (exec_time < 0){
+            printf("Negative exec time! start.s: %ld, start.ns: %ld\nend.s: %ld end.ns: %ld\n",
+            start.tv_sec, start.tv_nsec, end.tv_sec, end.tv_nsec);
+        }
     }
 #endif
 
