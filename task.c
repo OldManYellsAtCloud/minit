@@ -12,6 +12,7 @@
 
 #include <dlfcn.h>
 #include <linux/pidfd.h>
+#include <stdint.h>
 
 #ifdef BENCHMARK
 #include <time.h>
@@ -86,7 +87,7 @@ void* task_execute(void *task){
 
 #ifdef BENCHMARK
     struct timespec start, end;
-    long exec_time;
+    uint64_t exec_time;
     if (clock_gettime(CLOCK_MONOTONIC, &start) != 0){
         fprintf(stderr, "Could not get start time: %d - %s\n", errno, strerror(errno));
     }
@@ -175,7 +176,10 @@ void* task_execute(void *task){
         break;
     }
 
-    waitpid(fork_pid, NULL, 0);
+    if (cf->ttype == SCRIPT)
+        waitpid(fork_pid, NULL, 0);
+    else
+        pthread_join(pt, NULL);
 
 exit:
     return NULL;
