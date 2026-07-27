@@ -131,6 +131,7 @@ int config_file_parse(const char *path, struct config_file *cfg) {
         if (strncmp("type: ", buf, 6) == 0){
             char *t = text_utils_trim(text_utils_get_config_value(buf));
             cfg->ttype = strncmp(t, "NATIVE", 7) ? SCRIPT : NATIVE;
+            continue;
         }
         fprintf(stderr, "Unrecognized config line: %s: %s\n", path, buf);
     }
