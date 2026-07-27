@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 
 #include <dlfcn.h>
+#include <linux/pidfd.h>
 
 #ifdef BENCHMARK
 #include <time.h>
@@ -25,8 +26,57 @@ static pthread_cond_t cnd = PTHREAD_COND_INITIALIZER;
 static int jobs_done = 0;
 static struct config_file **done_list;
 
+static void* task_run_native_task(void *config_file){
+    void *dyn_handle;
+    typeof(int(void)) *dyn_task;
+    struct config_file *cf = (struct config_file*)config_file;
+    int *ret = malloc(sizeof(int));
+
+    dyn_handle = dlopen(cf->task->cmd, RTLD_LAZY | RTLD_LOCAL);
+    if (!dyn_handle){
+        fprintf(stderr, "Error opening native task file %s: %s\n", cf->task->cmd, dlerror());
+        *ret = -1;
+        goto native_task_exit;
+    }
+
+    dyn_task = dlsym(dyn_handle, "run");
+    if (!dyn_task){
+        fprintf(stderr, "Error querying run method in %s: %s\n", cf->task->cmd, dlerror());
+        *ret = -1;
+        goto native_task_exit;
+    }
+    *ret = dyn_task();
+
+native_task_exit:
+    return ret;
+}
+
+// for native tasks, without fork+exec
+static int task_run_thread(struct config_file *cf, pthread_t *pt){
+    *pt = pthread_create(pt, NULL, task_run_native_task, pt);
+    if (!pt){
+        fprintf(stderr, "Could not create thread: %d - %s\n", errno, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+// for script tasks, with fork+exec
+int task_run_fork(struct config_file *cf, pid_t *fork_pid){
+    if ((*fork_pid = fork()) == 0){
+        if (execvp(cf->task->cmd, cf->task->args) == -1){
+            fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
+            return -1;
+        }
+    }
+    printf("Fork successful: %d\n", *fork_pid);
+    return 0;
+}
+
 void* task_execute(void *task){
     pid_t fork_pid;
+    pthread_t pt;
     int pidfd;
     int ret;
     int timeout;
@@ -37,41 +87,29 @@ void* task_execute(void *task){
 #ifdef BENCHMARK
     struct timespec start, end;
     long exec_time;
-    if (clock_gettime(CLOCK_REALTIME, &start) != 0){
+    if (clock_gettime(CLOCK_MONOTONIC, &start) != 0){
         fprintf(stderr, "Could not get start time: %d - %s\n", errno, strerror(errno));
     }
 #endif
 
     struct config_file *cf = (struct config_file*)task;
 
-    if ((fork_pid = fork()) == 0){
-        switch(cf->ttype){
-        case SCRIPT:
-            if (execvp(cf->task->cmd, cf->task->args) == -1){
-                fprintf(stderr, "FATAL: execv failed: %d - %s\n", errno, strerror(errno));
-                keep_going = false;
-                goto exit;
-            }
-            break;
-        case NATIVE:
-            dyn_handle = dlopen(cf->task->cmd, RTLD_LAZY | RTLD_LOCAL);
-            if (!dyn_handle){
-                fprintf(stderr, "Could not load %s: %s\n", cf->task->cmd, dlerror());
-                keep_going = false;
-                goto exit;
-            }
-
-            dyn_task = dlsym(dyn_handle, "run");
-            if (!dyn_task){
-                fprintf(stderr, "Error querying run method in %s: %s\n", cf->task->cmd, dlerror());
-                keep_going = false;
-                goto exit;
-            }
-            break;
+    switch(cf->ttype){
+    case SCRIPT:
+        if (task_run_fork(cf, &fork_pid) == -1){
+            keep_going = false;
+            goto exit;
         }
+        pidfd = syscall(SYS_pidfd_open, fork_pid, 0);
+        break;
+    case NATIVE:
+        if (task_run_thread(cf, &pt) == -1){
+            keep_going = false;
+            goto exit;
+        }
+        pidfd = syscall(SYS_pidfd_getfd, pt, PIDFD_THREAD);
+        break;
     }
-
-    pidfd = syscall(SYS_pidfd_open, fork_pid, 0);
 
     if (pidfd < 0){
         fprintf(stderr, "Fatal: could not open pidfd for task: %s: %d - %s\n",
@@ -88,7 +126,7 @@ void* task_execute(void *task){
     ret = poll(&pfd, 1, timeout);
 
 #ifdef BENCHMARK
-    if (clock_gettime(CLOCK_REALTIME, &end) != 0){
+    if (clock_gettime(CLOCK_MONOTONIC, &end) != 0){
         fprintf(stderr, "Could not get end time: %d - %s\n", errno, strerror(errno));
     } else {
         exec_time = end.tv_sec * 1000000000 + end.tv_nsec -
@@ -105,8 +143,17 @@ void* task_execute(void *task){
     switch (ret){
     case 0:
         fprintf(stderr, "Task timeout: %s after %ld seconds\n", cf->task->cmd, cf->timeout);
-        if (kill(fork_pid, SIGKILL) != 0){
-            fprintf(stderr, "Could not kill pid: %d. %d - %s\n", fork_pid, errno, strerror(errno));
+        switch (cf->ttype){
+        case SCRIPT:
+            if (kill(fork_pid, SIGKILL) != 0){
+                fprintf(stderr, "Could not kill pid: %d. %d - %s\n", fork_pid, errno, strerror(errno));
+            }
+            break;
+        case NATIVE:
+            if (pthread_cancel(pt) != 0){
+                fprintf(stderr, "Could not cancel tid: %d - %s\n", errno, strerror(errno));
+            }
+            break;
         }
         keep_going = false;
         pthread_cond_signal(&cnd);
