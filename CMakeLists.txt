@@ -38,8 +38,10 @@ add_executable(minit_test_task
 
 add_library(sample_native_task SHARED
     sample_native_task.c
-    native_task.h
-    )
+    native_task.h)
+
+set_target_properties(sample_native_task PROPERTIES PREFIX ""
+                                                    SUFFIX "")
 
 include(GNUInstallDirs)
 install(TARGETS minit
