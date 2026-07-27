@@ -54,7 +54,7 @@ native_task_exit:
 
 // for native tasks, without fork+exec
 static int task_run_thread(struct config_file *cf, pthread_t *pt){
-    *pt = pthread_create(pt, NULL, task_run_native_task, pt);
+    *pt = pthread_create(pt, NULL, task_run_native_task, cf);
     if (!pt){
         fprintf(stderr, "Could not create thread: %d - %s\n", errno, strerror(errno));
         return -1;
